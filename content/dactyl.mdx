@@ -1,0 +1,143 @@
+---
+title: Finishing My Dactyl Manuform
+date: 2024-05-26
+---
+
+# Finishing My Dactyl Manuform
+
+Today I finished my 
+[Dactyl Manuform](https://github.com/abstracthat/dactyl-manuform)
+, which is a split, concave, ortholinear hand wired keyboard.  I bought the materials 
+about two years ago and it has been sitting in my room ever since because I was too 
+worried about ruining the case to continue soldering it.
+
+<Row>
+  <Img
+    src="dactyl/IMG_1540.JPG"
+    alt="Dactyl IMG 1540"
+    caption="" />
+  <Img
+    src="dactyl/IMG_1541.JPG"
+    alt="Dactyl IMG 1541"
+    caption="" />
+</Row>
+
+The whole thing had been put in a box and moved to and from school since I have had it, 
+but has remained intact.  Each side of the keyboard works by outputting a '1' to a column 
+and reading which rows are active.  The sides communicate via a serial connection with 
+three pins: GND, VCC and a single data pin.
+
+<Row desc="State of the project">
+  <Img
+    src="dactyl/IMG_1542.JPG"
+    alt="Dactyl IMG 1542"
+    caption="" />
+  <Img
+    src="dactyl/IMG_1543.JPG"
+    alt="Dactyl IMG 1543"
+    caption="" />
+  <Img
+    src="dactyl/IMG_1544.JPG"
+    alt="Dactyl IMG 1544"
+    caption="" />
+</Row>
+
+When I first started the project, I glued the keycaps to the case and soldered the columns 
+to the caps.  I was following 
+[this](https://www.youtube.com/watch?v=dWC_8BOArzc&list=PLJcTwFs4jAY0VnJDXhexZw7X3OIjXQkiY&pp=iAQB)
+ build stream, which suggested copper tape for the columns with nonconductive tape on top.  
+This worked well, although if I were to make another I would try a different method.  The next 
+step is to wire the rows with diodes.  This was especially tedious and took a long time.
+
+<Row>
+  <Img
+    src="dactyl/IMG_1560.JPG"
+    alt="Rows done"
+    caption="Rows done" />
+  <Img
+    src="dactyl/IMG_1562.JPG"
+    alt="The setup"
+    caption="The setup" />
+  <Img
+    src="dactyl/IMG_1563.JPG"
+    alt="Dactyl IMG 1563"
+    caption="" />
+</Row>
+
+The next step is wiring the rows and columns to the microcontroller.  I have Raspberry Pi pro micro 
+knockoffs for this project and used dupont connectors for the pins on the micro and on the end of 
+row diodes.  For the columns, I soldered the other side of the wire to the copper tape.
+
+<Row>
+  <Img
+    src="dactyl/IMG_1564.JPG"
+    alt="Rows only"
+    caption="Rows only" />
+  <Img
+    src="dactyl/IMG_1565.JPG"
+    alt="Soldered the columns"
+    caption="Soldered the columns" />
+</Row>
+
+I then soldered the pins to the microcontrollers and soldered dupont 
+connectors to the RJ-9 jacks.
+
+<Row>
+  <Img
+    src="dactyl/IMG_1566.JPG"
+    alt="A little sloppy"
+    caption="A little sloppy" />
+  <Img
+    src="dactyl/IMG_1567.JPG"
+    alt="Dactyl IMG 1567"
+    caption="" />
+</Row>
+
+With that it was about done.  The layoud of the white keys is Colemak and 
+the rest is custom; the far bottom left is print screen and far bottom 
+right is backslash/pipe.
+
+<Row>
+  <Img
+    src="dactyl/IMG_1568.JPG"
+    alt="Keycaps on"
+    caption="Keycaps on" />
+  <Img
+    src="dactyl/IMG_1570.JPG"
+    alt="Wired up"
+    caption="Wired up" />
+</Row>
+
+I successfully flashed the firmware but the right side did not turn on.  
+After some debugging, I realized that I ded not flip the wires on the 
+RJ-9 jack.  How silly!
+
+<Row>
+  <Img
+    src="dactyl/IMG_1571.JPG"
+    alt="Debugging with the ESP32"
+    caption="Debugging with the ESP32" />
+  <Img
+    src="dactyl/IMG_1573.JPG"
+    alt="The culprit, working version"
+    caption="The culprit, working version" />
+</Row>
+
+After that I had another hour of debugging faulty column connections before it worked.
+Great project overall, would recommend
+
+<Row desc="Final product">
+  <Img
+    src="dactyl/IMG_1584.JPG"
+    alt="Dactyl IMG 1584"
+    caption="" />
+  <Img
+    src="dactyl/IMG_1585.JPG"
+    alt="Dactyl IMG 1585"
+    caption="" />
+  <Img
+    src="dactyl/IMG_1587.JPG"
+    alt="Dactyl IMG 1587"
+    caption="" />
+</Row>
+

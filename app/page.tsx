@@ -1,103 +1,76 @@
-import Image from "next/image";
+import fs from "fs/promises"
+import path from "path"
+import { ContentListItem, ContentListItemProps } from "@/components/ContentListItem"
 
-export default function Home() {
+export default async function Home() {
+  const contentDir = path.join(process.cwd(), "content")
+  
+  const entries = await fs.readdir(contentDir, { withFileTypes: true })
+  
+  const postFiles = entries
+    .filter(entry => !entry.isDirectory() && entry.name.endsWith('.mdx') && entry.name !== '_index.mdx')
+    .map(entry => entry.name)
+  
+  const folders = entries
+    .filter(entry => entry.isDirectory())
+    .map(entry => entry.name)
+  
+  const posts = await Promise.all(
+    postFiles.map(async (fileName) => {
+      const postSlug = fileName.replace(/\.mdx$/, "")
+      const { frontmatter } = await import(`@/content/${fileName}`)
+      
+      return {
+        slug: postSlug,
+        frontmatter,
+        isFolder: false
+      }
+    })
+  )
+  
+  const folderItems = await Promise.all(
+    folders.map(async (folderName) => {
+      const { frontmatter } = await import(`@/content/${folderName}/_index.mdx`)
+      
+      return {
+        slug: folderName,
+        frontmatter,
+        isFolder: true
+      }
+    })
+  )
+  
+  const allItems: ContentListItemProps[] = [...posts, ...folderItems].sort((a, b) => {
+    return new Date(b.frontmatter.date).getTime() - new Date(a.frontmatter.date).getTime()
+  })
+
+  const { default: IndexContent } = await import('@/content/_index.mdx')
+  
   return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm/6 text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-[family-name:var(--font-geist-mono)] font-semibold">
-              app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+    <div>
+      <div className="sm:mt-[8vw] mt-[40%] mb-2 xl:ml-[20%]">
+        <h1 className="font-header tracking-tight text-6xl sm:text-8xl mb-2">Grady Arnold</h1>
+        {/* <div className="text-base text-right mr-3.25 md:mr-[52%]">
+          <Link href="/about" className="hover:underline">Contact</Link>
+          <span className="mx-2">|</span>
+          <Link href="/rss.xml" className="hover:underline">RSS</Link>
+          <span className="mx-2">|</span>
+          <Link href="/resume.pdf" className="hover:underline">Resume</Link>
+        </div> */}
+      </div>
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
-        </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
+      <div className="prose prose-lg py-20 lg:ml-[20%] lg:w-[55%]">
+        <IndexContent />
+      </div>
+      
+      <div className="space-y-6 lg:ml-[calc(25%-4rem)]">
+        {allItems.map((item) => (
+          <ContentListItem
+            key={`${item.isFolder ? 'folder' : 'post'}-${item.slug}`}
+            item={item}
           />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+        ))}
+      </div>
     </div>
-  );
+  )
 }

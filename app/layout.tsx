@@ -1,16 +1,19 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
-import "./globals.css";
+import { Castoro, Archivo } from 'next/font/google'
+import './globals.css';
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
+const castoro = Castoro({
+  subsets: ['latin'],
+  variable: '--font-castoro',
+  display: 'swap',
+  weight: '400'
+})
+ 
+const archivo = Archivo({
+  subsets: ['latin'],
+  variable: '--font-archivo',
+  display: 'swap',
+})
 
 export const metadata: Metadata = {
   title: "Create Next App",
@@ -23,12 +26,12 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
-        {children}
-      </body>
+    <html lang="en" className={`${castoro.variable} ${archivo.variable}`}>
+        <body className="antialiased flex-auto min-w-0 mt-6 flex flex-col px-4 md:px-8">
+          <main className="w-full max-w-screen-2xl mx-auto font-main">
+              {children}
+          </main>
+        </body>
     </html>
   );
 }
