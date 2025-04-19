@@ -15,7 +15,7 @@ export const Img: React.FC<ImgProps> = ({
   priority = false
 }) => {
   return (
-    <div className="w-full sm:w-[calc(50%-12px)] md:w-[calc(33.333%-16px)] lg:w-[calc(25%-18px)] mb-6">
+    <div className="w-full sm:w-[calc(50%-12px)] md:w-[calc(33.333%-16px)] lg:w-[calc(25%-22px)] mb-6">
       <div className="aspect-square relative overflow-hidden rounded-md shadow-lg">
         <Image
           src={`${process.env.NEXT_PUBLIC_IMG_HOST}/${src}`}
