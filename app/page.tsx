@@ -48,8 +48,8 @@ export default async function Home() {
   
   return (
     <div>
-      <div className="sm:mt-[8vw] mt-[40%] mb-2 xl:ml-[20%]">
-        <h1 className="font-header tracking-tight text-6xl sm:text-8xl mb-2">Grady Arnold</h1>
+      <div className="sm:mt-[10vw] mt-[45%] mb-2 xl:ml-[20%]">
+        <h1 className="font-header tracking-tight text-5xl sm:text-8xl mb-2">Grady Arnold</h1>
         {/* <div className="text-base text-right mr-3.25 md:mr-[52%]">
           <Link href="/about" className="hover:underline">Contact</Link>
           <span className="mx-2">|</span>
