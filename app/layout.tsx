@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import { Castoro, Archivo } from 'next/font/google'
 import { Analytics } from "@vercel/analytics/react"
+import { SpeedInsights } from "@vercel/speed-insights/next"
 import './globals.css';
+import { SP } from "next/dist/shared/lib/utils";
 
 const castoro = Castoro({
   subsets: ['latin'],
@@ -32,8 +34,9 @@ export default function RootLayout({
           <main className="w-full max-w-screen-2xl mx-auto font-main">
               {children}
           </main>
+          <Analytics />
+          <SpeedInsights />
         </body>
-        <Analytics />
     </html>
   );
 }

@@ -1,20 +1,32 @@
 import createMDX from '@next/mdx'
-import { visit } from 'unist-util-visit';
 
-const imgHost = new URL(process.env.NEXT_PUBLIC_IMG_HOST)
- 
+let remotePatterns = [];
+if (process.env.NODE_ENV !== 'development') {
+  const imgHost = new URL(process.env.NEXT_PUBLIC_IMG_HOST);
+  remotePatterns = [
+    {
+      protocol: 'https',
+      hostname: imgHost.hostname,
+      port: '',
+      pathname: '/**',
+    },
+  ];
+}
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   pageExtensions: ['js', 'jsx', 'md', 'mdx', 'ts', 'tsx'],
   images: {
-    remotePatterns: [
+    remotePatterns: remotePatterns,
+  },
+  async redirects() {
+    return [
       {
-        protocol: 'https',
-        hostname: imgHost.hostname,
-        port: '',
-        pathname: '/**',
+        source: '/midi-5x8',
+        destination: '/blog/post/midi-5x8',
+        permanent: true,
       },
-    ],
+    ]
   },
 }
 
