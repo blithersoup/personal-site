@@ -3,7 +3,6 @@ import { Castoro, Archivo } from 'next/font/google'
 import { Analytics } from "@vercel/analytics/react"
 import { SpeedInsights } from "@vercel/speed-insights/next"
 import './globals.css';
-import { SP } from "next/dist/shared/lib/utils";
 
 const castoro = Castoro({
   subsets: ['latin'],
