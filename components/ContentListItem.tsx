@@ -28,9 +28,9 @@ export function ContentListItem({ item }: { item: ContentListItemProps }) {
           {isFolder && (
             <CubeIcon className="w-5 h-5 mr-2 text-[var(--accent-1)]" />
           )}
-          <h3 className="text-xl font-medium mb-1 group-hover:underline">
+          <h2 className="text-xl font-medium mb-1 group-hover:underline">
             {item.frontmatter.title}
-          </h3>
+          </h2>
         </div>
       </Link>
 
@@ -38,7 +38,8 @@ export function ContentListItem({ item }: { item: ContentListItemProps }) {
         {new Date(item.frontmatter.date).toLocaleDateString('en-US', {
           year: 'numeric',
           month: 'long',
-          day: 'numeric'
+          day: 'numeric',
+          timeZone: 'UTC'
         })}
       </p>
       <p className="line-clamp-2">
