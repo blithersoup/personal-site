@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Castoro, Archivo } from 'next/font/google'
+import { Analytics } from "@vercel/analytics/react"
 import './globals.css';
 
 const castoro = Castoro({
@@ -32,6 +33,7 @@ export default function RootLayout({
               {children}
           </main>
         </body>
+        <Analytics />
     </html>
   );
 }
