@@ -23,13 +23,13 @@ html {
 }
 
 ::selection {
-  background-color: var(--accent-2); /* e.g. pink */
+  background-color: var(--accent-2);
 }
 
 /* PROSE STYLES */
 
 .prose {
-  @apply max-w-none text-lg sm:text-xl font-main leading-relaxed;
+  @apply max-w-none text-lg sm:text-lg font-main leading-relaxed;
 }
 
 .prose p {
@@ -70,7 +70,7 @@ html {
 }
 
 .prose code {
-  @apply text-sm sm:text-base rounded px-1.5 py-0.5 font-mono;
+  @apply !text-sm rounded px-1.5 py-0.5 font-mono;
 }
 
 .prose pre {

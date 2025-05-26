@@ -1,0 +1,71 @@
+---
+title: Part 2- Argo CD
+date: 2025-05-08
+---
+# Creating a CD system
+
+After some research I decided to use Argo CD for a CD system.  It seems to work well for observing the 
+cluster state and defining the manifests that will be used.
+
+```yaml title="continued_install.sh"
+helm repo add argo https://argoproj.github.io/argo-helm && helm repo update
+
+helm install argocd argo/argo-cd \
+  --namespace argocd \
+  --create-namespace \
+  -f argocd/values.yaml
+
+kubectl get secret argocd-initial-admin-secret -n argocd   -o jsonpath="{.data.password}" | base64 -d
+
+kubectl apply -f app_of_apps.yaml -n argocd
+```
+
+Argo works by creating Application and ApplicationSet custom resources that are monitored by Argo.  Each 
+application will define a resource to pull and monitor, which will be shown in the dashboard.  I started with 
+creating the base application (app_of_apps in the install).  This monitors the folder in my GitOps repo that contains 
+itself and my other application definitions.  Each other application in this folder will define a source to create 
+and monitor.
+
+Some applications require separate ingresses to access the services so that I can properly use 
+tailscale-operator on them, so I defined them in a kustomization separately.  Example-
+
+```yaml title="argocd-apps/longhorn.yaml"
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: longhorn
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: repourl
+    targetRevision: HEAD
+    path: apps/longhorn
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: longhorn-system
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+```
+
+<br />
+
+```yaml title="apps/longhorn/kustomization.yaml"
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+helmCharts:
+  - name: longhorn
+    repo: https://charts.longhorn.io
+    version: 1.8.1
+    releaseName: longhorn
+    namespace: longhorn-system
+    valuesFile: values.yaml # some tweaks here
+
+resources:
+  - ingress.yaml # same as others
+```

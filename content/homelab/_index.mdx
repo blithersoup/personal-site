@@ -1,0 +1,32 @@
+---
+title: Homelab
+date: 2025-05-25
+---
+# Homelab
+
+This is documentation of my homelab, which is a two node kubernetes 
+cluster that hosts some services that I intend to use.  I have repurposed 
+my x86_64 desktop with an Intel i7 CPU, 16GB ram, and a NVIDIA 3070 for the 
+primary node and purchased a Raspberry Pi 5 16GB (expensive I know) for the 
+secondary due to its support of my spare 1TB NVMe SSD.
+
+The goal of this project was to learn more about kubernetes, GitOps, networking, and 
+of course host some services.  By getting this far I believe I have accomplished all 
+of this.
+
+In short, the cluster deploys supervises applications with 
+[ArgoCD](https://argo-cd.readthedocs.io/) that are defined in 
+[this repo](https://github.com/blithersoup/private-cloud-1).  I also have 
+[Hubble](https://github.com/cilium/hubble) for observing network flows and 
+[Grafana / Prometheus](https://prometheus.io/docs/visualization/grafana/)
+for gathering and viewing metrics.  The main applications I use (and started 
+this project to host) are [Minio](https://min.io/) and [MLflow](https://mlflow.org/).
+
+I considered implementing a more highly available and fault tolerant setup, but determined 
+that the benefits would not be worth the extra setup and buying extra hardware, at 
+least for now.
+
+For this project, learning the technology and understanding how the configuration worked 
+was far more difficult than reasoning about the system and creating solutions.  Overall 
+I am happy with the end result and would be interested in designing a more involved system.
+Below are the (dry) writeups that I made while learning.
