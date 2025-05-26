@@ -1,0 +1,218 @@
+---
+title: Part 6- Install Automation and OS Support
+date: 2025-05-25
+---
+# Install Automation and OS Support
+
+Up to this point, I had been using a shell script to reinstall components of the 
+system when I broke it and manually validating the outputs.  But that won't do, 
+will it?  As I am very familiar with Red Hat Ansible, I decided to automate the 
+install process using that.  The original goal was using best practices and 
+full idempotency, which I mostly acheived.
+
+It is worth noting that I am using Ubuntu Server 22.04LTS on both nodes, which 
+have different architectures and GPU availability.  To handle this, I have either 
+specified an affinity for amd64 or ensured multiarch images.
+
+The install looks like below-
+
+```yaml title="ansible/install.yaml"
+---
+- name: Prepare all nodes (OS, UFW)
+  hosts: all
+  roles:
+    - role: ufw_config
+    - role: os_common_config
+
+- name: Setup K3s and NVIDIA GPU components on main
+  hosts: main
+  roles:
+    - role: k3s_server_setup
+    - role: nvidia_gpu_setup
+
+- name: Setup K3s Agents on agent nodes
+  hosts: agent
+  roles:
+    - role: k3s_agent_setup
+
+- name: Setup K3s Server, Kubernetes tools, and deploy applications on main node
+  hosts: main
+  roles:
+    - role: kubernetes_tools_setup
+    - role: kubernetes_apps_deploy
+```
+
+Walking through the install, I first decided to configure the firewall instead of 
+disabling it as before.
+
+```yaml title="ansible/roles/ufw_config/main.yaml"
+- name: Ensure ufw is installed
+  ansible.builtin.apt:
+    name: ufw
+    state: present
+  become: true
+
+- name: Set UFW default policies
+  community.general.ufw:
+    default: "{{ item.policy }}"
+    direction: "{{ item.direction }}"
+  loop:
+    - { policy: deny, direction: incoming }
+    - { policy: allow, direction: outgoing }
+  become: true
+
+- name: Allow essential loopback traffic
+  community.general.ufw:
+    rule: allow
+    interface: lo
+    direction: in
+  become: true
+
+- name: Allow Kubelet API
+  community.general.ufw:
+    rule: allow
+    port: '10250'
+    proto: tcp
+    from_ip: "{{ item }}"
+  loop:
+    - '10.42.0.0/16' # pod CIDR
+    - '10.43.0.0/16' # service CIDR
+  become: true
+
+- name: Allow required inbound ports
+  community.general.ufw:
+    rule: allow
+    port: "{{ item.port }}"
+    proto: "{{ item.proto }}"
+  loop:
+    - { port: "22",    proto: "tcp" }   # SSH access
+    - { port: "6443",  proto: "tcp" }   # K3s API Server (control plane only)
+    - { port: "8472",  proto: "udp" }   # Cilium VXLAN/Geneve overlay networking
+    - { port: "4240",  proto: "tcp" }   # Cilium health checks
+    - { port: "4244",  proto: "tcp" }   # Hubble Relay
+    - { port: "41641", proto: "udp" }   # Tailscale direct connections
+    - { port: "5353",  proto: "udp" }   # mDNS (Avahi for local discovery)
+  become: true
+  when: item.port != '6443' or inventory_hostname in groups['main']
+
+- name: Enable UFW and logging
+  community.general.ufw:
+    state: enabled
+    logging: 'on'
+  become: true
+```
+
+This works as shown, disabling all inbound traffic except for the services commented at 
+the bottom.
+
+I also ran into some issues with filesystem and user limits, so I decided to reset them 
+with the below role-
+
+```yaml title="ansible/roles/os_common_config/main.yaml"
+- name: Find UUID for the root mount point from Ansible facts
+  ansible.builtin.set_fact:
+    root_fs_uuid: "{{ item.uuid }}"
+  loop: "{{ ansible_mounts }}"
+  when: item.mount == "/"
+
+- name: Ensure / is mounted with noatime
+  ansible.posix.mount:
+    path: /
+    src: "UUID={{ root_fs_uuid }}"
+    fstype: ext4
+    opts: defaults,noatime
+    state: mounted
+  become: true
+  when: root_fs_uuid is defined
+
+- name: Disable swap permanently in fstab
+  ansible.builtin.replace:
+    path: /etc/fstab
+    regexp: '^([^#].*?\sswap\s+sw\s+.*)$'
+    replace: '# \1'
+  become: true
+
+- name: Increase kernel fs.file-max (system-wide)
+  ansible.posix.sysctl:
+    name: fs.file-max
+    value: "2097152"
+    sysctl_file: /etc/sysctl.d/99-k3s-limits.conf
+    state: present
+    reload: true
+  become: true
+
+- name: Increase kernel fs.nr_open (per-process)
+  ansible.posix.sysctl:
+    name: fs.nr_open
+    value: "1048576"
+    sysctl_file: /etc/sysctl.d/99-k3s-limits.conf
+    state: present
+    reload: true
+  become: true
+
+- name: Configure user limits via PAM (limits.conf)
+  ansible.builtin.lineinfile:
+    path: /etc/security/limits.d/99-k3s-nofile.conf
+    create: true
+    mode: '0644'
+    regexp: "^{{ item.user | regex_escape() }}\\s+{{ item.type }}\\s+nofile"
+    line: "{{ item.user }} {{ item.type }} nofile 1048576"
+  loop:
+    - { user: '*', type: 'soft' }
+    - { user: '*', type: 'hard' }
+    - { user: 'root', type: 'soft' }
+    - { user: 'root', type: 'hard' }
+  become: true
+
+- name: Update APT package cache (once before batch installs)
+  ansible.builtin.apt:
+    update_cache: true
+  become: true
+
+- name: Upgrade all APT packages
+  ansible.builtin.apt:
+    upgrade: dist
+  become: true
+
+- name: Install common packages
+  ansible.builtin.apt:
+    name: "{{ common_packages_to_install }}"
+    state: present
+  become: true
+
+- name: Ensure avahi-daemon is enabled and started
+  ansible.builtin.systemd:
+    name: avahi-daemon
+    enabled: true
+    state: started
+  become: true
+
+- name: Reboot node due to pending changes
+  ansible.builtin.reboot:
+    msg: "Rebooting node because /var/run/reboot-required exists"
+    pre_reboot_delay: 2
+    reboot_timeout: 600
+    post_reboot_delay: 2
+    test_command: uptime
+  become: true
+```
+
+This install section was heavily ai assisted, but I researched each part and have not 
+received filesystem warnings in operation after these changes.  Avahi-daemon is for 
+mDNS local name resolution, which helped during the install process.  I am using ips 
+for the k8s connection, but needed it when names would not resolve locally.  Also ideally 
+the reboots would only be triggered after ansible changes with 
+[handlers](https://docs.ansible.com/ansible/latest/playbook_guide/playbooks_handlers.html), but I did not 
+get that working quickly enough.  This project has taken me a lot of time to 
+do, and some finishing touches were not worth it.
+
+Next I install k3s on the main node, override the systemd service filesystem limits, 
+dump the kubeconfig to the user .kube/ directory like before, and configure the nvidia settings.
+After that I install k3s on the agent node.
+
+I then install the cilium and hubble CLIs, which will be used later.
+
+The final step is installing manifests to k8s- cilium, tailscale-operator, gpu-operator, argocd.  
+Once I got the configs written properly automating the cluster to a ready state was not very difficult.
+Finally, we retrieve the admin password from argocd and apply our app-of-apps manifest!  From there 
+it should take another few minutes for containers to create and the state to be synced.  Very cool!

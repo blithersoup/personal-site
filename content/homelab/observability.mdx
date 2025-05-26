@@ -1,0 +1,94 @@
+---
+title: Part 5- Networking and Observability
+date: 2025-05-18
+---
+# Implementing an Observability Stack
+
+I decided to use Cilium as my CNI, which proved to be an educational 
+experience when trying to override the k3s defaults.  Below is the install 
+that works for me.
+
+First, we install k3s with 
+```bash
+curl -sfL https://get.k3s.io | INSTALL_K3S_EXEC='--flannel-backend=none --disable-network-policy --disable-kube-proxy' sh -
+```
+
+Then, install the cilium helm chart with values
+
+```yaml title="ansible/roles/kubernetes_apps_deploy/main.yml"
+k8sServiceHost: # IP addr of primary
+k8sServicePort: 6443
+cluster:
+  name: private-cloud
+  id: 1
+ipam:
+  mode: cluster-pool
+  operator:
+    clusterPoolIPv4PodCIDRList: "10.42.0.0/16"
+hubble:
+  enabled: true
+  relay:
+    enabled: true
+  ui:
+    enabled: true
+routingMode: native
+kubeProxyReplacement: true
+socketLB:
+  hostNamespaceOnly: true
+enableIPv4Masquerade: true
+ipv4NativeRoutingCIDR: "10.42.0.0/16"
+ipMasqAgent:
+  enabled: false
+bpf:
+  masquerade: true
+  hostLegacyRouting: true
+autoDirectNodeRoutes: true
+```
+
+To be honest I am not fully sure that this is exactly what I need, 
+but it does allow the status to be OK and networking works as expected after the 
+secondary node is connected.  With this I can access the Hubble network observability 
+tool as well.
+
+I am also using tailscale for cluster ingress using its operator, which I install with 
+no custom config.  I then wire it to ingress services like below.
+
+```yaml title="apps/longhorn/ingress.yaml"
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: longhorn-ingress
+spec:
+  defaultBackend:
+    service:
+      name: longhorn-frontend
+      port:
+        number: 80
+  ingressClassName: tailscale
+  tls:
+    - hosts:
+        - longhorn
+```
+
+This allows me to access services on subdomains of my tailnet when connected to 
+vpn. Sweet!
+
+Next I installed the kube-prometheus-stack helm chart, which was very 
+convenient 
+
+```yaml title="argocd-apps/kube-prometheus.yaml"
+prometheus:
+  prometheusSpec:
+    storageSpec:
+      volumeClaimTemplate:
+        spec:
+          storageClassName: longhorn
+          accessModes: ["ReadWriteOnce"]
+          resources:
+            requests:
+              storage: 30Gi
+    retention: 15d
+```
+
+From here I added some extra dashboards to grafana and enabled default 
+metrics exporters that shipped with other helm charts that I installed.

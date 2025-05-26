@@ -1,0 +1,68 @@
+---
+title: Part 3- GPU Support
+date: 2025-05-13
+---
+# Configuring GPU Support
+
+After struggling for a bit, I found the information I needed in [this](https://github.com/UntouchedWagons/K3S-NVidia)
+repo.  Below is my updated install and config.
+
+```bash title="install.sh"
+# nvidia server drivers preinstalled in ubuntu image
+sudo ubuntu-drivers autoinstall 
+sudo apt update
+sudo apt upgrade -y
+
+# installing gpu-agent
+curl -fsSL https://nvidia.github.io/libnvidia-container/gpgkey | sudo gpg --dearmor -o /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg
+curl -s -L https://nvidia.github.io/libnvidia-container/stable/deb/nvidia-container-toolkit.list | \
+  sed 's#deb https://#deb [signed-by=/usr/share/keyrings/nvidia-container-toolkit-keyring.gpg] https://#g' | \
+  sudo tee /etc/apt/sources.list.d/nvidia-container-toolkit.list
+
+sudo apt update
+sudo apt install -y nvidia-container-toolkit
+
+# INSTALL K3s as before
+
+curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+helm repo add nvidia https://helm.ngc.nvidia.com/nvidia && helm repo update
+
+kubectl create namespace gpu-operator
+kubectl apply -n gpu-operator -f private-cloud-1/config/nvidia/timeslice.yaml
+
+helm install --wait \
+    gpu-operator -n gpu-operator nvidia/gpu-operator \
+    --values private-cloud-1/config/nvidia/values.yaml
+```
+
+So, we install the drivers, then after k3s is installed we install gpu-operator to manage our 
+resources.  In the operator install, an optional feature that I enabled is [time slicing](https://docs.nvidia.com/datacenter/cloud-native/gpu-operator/latest/gpu-sharing.html),
+which allows us to turn a gpu into multiple virtual time-shared gpus that will be allocated 
+as if they were full gpus.
+
+```yaml title="private-cloud-1/config/nvidia/timeslice.yaml"
+# https://github.com/UntouchedWagons/K3S-NVidia/blob/main/time-slicing-config.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: time-slicing-config-all
+  namespace: gpu-operator
+data:
+  any: |-
+    version: v1
+    flags:
+      migStrategy: none
+    sharing:
+      timeSlicing:
+        resources:
+        - name: nvidia.com/gpu
+          replicas: 4
+
+# USAGE
+# resources:
+#   requests:
+#     nvidia.com/gpu: '4'
+```
+
+With this, we can create pods that use GPUs.  I tested this with [text-generation-webui](https://github.com/oobabooga/text-generation-webui),
+only having problems when persistent storage volumes were not set up to be assigned to the GPU node.

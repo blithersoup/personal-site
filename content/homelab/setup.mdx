@@ -1,0 +1,99 @@
+---
+title: Part 1- Setup
+date: 2025-05-04
+---
+# Setting up the homelab
+
+Below is what I have as of today.  I started this project from wanting to host a database, but it 
+has quickly ballooned to hosting as many services as I can.  I am starting with a Raspberry Pi 
+5 16GB with a 1TB NVMe SSD.  The choice of server seems unreasonable, but I found it to be the 
+best option for keeping my old laptop SSD.  I have decided on the following stack for the lab-
+
+* Kubernetes cluster via [k3s](https://k3s.io/)
+* Application definitions with [helm](https://helm.sh/)
+* CD server on [Argo CD](https://argo-cd.readthedocs.io/en/stable/)
+* Accessing services over VPN with [tailscale-operator ingress](https://tailscale.com/kb/1439/kubernetes-operator-cluster-ingress)
+
+Below is my current install script; I will likely switch my installs to use Ansible later.
+
+```bash title="install.sh"
+sudo apt update && sudo apt install -y \
+  zfsutils-linux \
+  nfs-kernel-server \
+  cifs-utils \
+  open-iscsi \
+  iptables
+
+sudo ufw disable
+
+sudo vim /boot/firmware/cmdline.txt 
+# Add 'cgroup_enable=memory cgroup_memory=1' to the line.
+
+# reboot after
+sudo reboot
+
+# Install k3s
+curl -sfL https://get.k3s.io | sh -
+
+# using ~/.kube/config for kubeconfig https://docs.k3s.io/cluster-access
+mkdir -p $HOME/.kube
+sudo k3s kubectl config view --raw > $HOME/.kube/config
+sudo chown $USER:$USER $HOME/.kube/config
+sudo chmod 600 $HOME/.kube/config
+
+export KUBECONFIG=$HOME/.kube/config
+echo "export KUBECONFIG=$HOME/.kube/config" >> ~/.bashrc
+
+helm repo add tailscale https://pkgs.tailscale.com/helmcharts
+helm repo update
+
+kubectl create namespace tailscale
+
+helm upgrade \
+  --install \
+  tailscale-operator \
+  tailscale/tailscale-operator \
+  --namespace=tailscale \
+  --create-namespace \
+  --set-string oauth.clientId="<OAauth client ID>" \
+  --set-string oauth.clientSecret="<OAuth client secret>" \
+  --wait
+
+helm repo add argo https://argoproj.github.io/argo-helm && helm repo update
+
+helm install argocd argo/argo-cd \
+  --namespace argocd \
+  --create-namespace \
+  -f argocd/values.yaml
+
+# get initial password
+kubectl get secret argocd-initial-admin-secret -n argocd -o jsonpath="{.data.password}" | base64 -d
+```
+
+<br />
+
+```yaml title="argocd/values.yaml"
+server:
+  service:
+    ports:
+      https:
+        enabled: true
+        port: 443
+        targetPort: 8080
+        protocol: TCP
+        name: https
+  ingress:
+    enabled: true
+    ingressClassName: tailscale
+    hosts:
+      - argocd
+    paths:
+      - /
+    pathType: Prefix
+    tls:
+      - hosts:
+          - argocd # argocd.{tailnet-name}.ts.net
+```
+
+[Docs](https://tailscale.com/kb/1439/kubernetes-operator-cluster-ingress#exposing-cluster-workloads-using-a-kubernetes-ingress)
+for above

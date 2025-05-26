@@ -1,0 +1,81 @@
+---
+title: Part 4- Database and Object Storage
+date: 2025-05-16
+---
+# Setting Up Postgresql and Minio Object Storage
+
+For this step I added the minio and postgresql helm charts to my argocd repo.  Overall 
+I was able to install without a problem, but learned some of the difficulties of working 
+with helm charts.
+
+## Postgres
+
+```yaml title="apps/postgres/values.yaml"
+primary:
+  persistence:
+    storageClass: "longhorn"
+    enabled: true
+    size: 10Gi
+  resources:
+    requests:
+      memory: "512Mi"
+      cpu: "250m"
+    limits:
+      memory: "1Gi"
+      cpu: "500m"
+readReplicas:
+  replicaCount: 1
+  persistence:
+    storageClass: "longhorn"
+    enabled: true
+    size: 10Gi
+  resources:
+    requests:
+      memory: "512Mi"
+      cpu: "250m"
+    limits:
+      memory: "1Gi"
+      cpu: "500m"
+metrics:
+  enabled: true
+  serviceMonitor:
+    enabled: true
+    labels:
+      release: kube-prometheus-stack
+```
+
+With the above values file, we generate primary and secondary replicas with longhorn 
+PVCs.
+
+```yaml title="argocd-apps/minio.yaml"
+mode: standalone
+replicas: 1
+persistence:
+  enabled: true
+  storageClass: longhorn
+  size: 600Gi
+consoleIngress:
+  enabled: false
+resources:
+  requests:
+    memory: 6Gi
+metrics:
+  serviceMonitor:
+    enabled: true
+    additionalLabels:
+      release: kube-prometheus-stack
+buckets:
+  - name: mlflow
+    policy: none
+    purge: false
+  - name: music
+    policy: none
+    purge: false
+```
+
+For minio I first configured a high availability setup but determined that using 
+extra storage on 2 nodes would have limited benefit.  I did not have much difficulty 
+with this part other than configuring the service monitor release.
+
+As for auth, I searched for solutions for a while and decided that I just did not want to 
+implement anything special as my services are only accessible over a private subnet.
