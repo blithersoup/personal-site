@@ -4,6 +4,8 @@ date: 2025-05-16
 ---
 # Setting Up Postgresql and Minio Object Storage
 
+Previous: [Part 3- GPU Support](/blog/post/homelab/nvidia)
+
 For this step I added the minio and postgresql helm charts to my argocd repo.  Overall 
 I was able to install without a problem, but learned some of the difficulties of working 
 with helm charts.
@@ -79,3 +81,5 @@ with this part other than configuring the service monitor release.
 
 As for auth, I searched for solutions for a while and decided that I just did not want to 
 implement anything special as my services are only accessible over a private subnet.
+
+Next: [Part 5- Networking and Observability](/blog/post/homelab/observability)

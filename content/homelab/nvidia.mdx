@@ -4,6 +4,8 @@ date: 2025-05-13
 ---
 # Configuring GPU Support
 
+Previous: [Part 2- Argo CD](/blog/post/homelab/argo)
+
 After struggling for a bit, I found the information I needed in [this](https://github.com/UntouchedWagons/K3S-NVidia)
 repo.  Below is my updated install and config.
 
@@ -66,3 +68,5 @@ data:
 
 With this, we can create pods that use GPUs.  I tested this with [text-generation-webui](https://github.com/oobabooga/text-generation-webui),
 only having problems when persistent storage volumes were not set up to be assigned to the GPU node.
+
+Next: [Part 4- Database and Object Storage](/blog/post/homelab/persistence)
