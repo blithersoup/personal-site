@@ -4,6 +4,8 @@ date: 2025-05-25
 ---
 # Install Automation and OS Support
 
+Previous: [Part 5- Networking and Observability](/blog/post/homelab/observability)
+
 Up to this point, I had been using a shell script to reinstall components of the 
 system when I broke it and manually validating the outputs.  But that won't do, 
 will it?  As I am very familiar with Red Hat Ansible, I decided to automate the 
@@ -198,20 +200,19 @@ with the below role-
 
 This install section was heavily ai assisted, but I researched each part and have not 
 received filesystem warnings in operation after these changes.  Avahi-daemon is for 
-mDNS local name resolution, which helped during the install process.  I am using ips 
-for the k8s connection, but needed it when names would not resolve locally.  Also ideally 
+mDNS local name resolution, which helped during the install process.  Also ideally 
 the reboots would only be triggered after ansible changes with 
 [handlers](https://docs.ansible.com/ansible/latest/playbook_guide/playbooks_handlers.html), but I did not 
 get that working quickly enough.  This project has taken me a lot of time to 
 do, and some finishing touches were not worth it.
 
 Next I install k3s on the main node, override the systemd service filesystem limits, 
-dump the kubeconfig to the user .kube/ directory like before, and configure the nvidia settings.
+dump the kubeconfig to the user ~/.kube/ directory like before, and configure the nvidia settings.
 After that I install k3s on the agent node.
 
 I then install the cilium and hubble CLIs, which will be used later.
 
 The final step is installing manifests to k8s- cilium, tailscale-operator, gpu-operator, argocd.  
-Once I got the configs written properly automating the cluster to a ready state was not very difficult.
+Once I got the configs written properly, automating the cluster to a ready state was not very difficult.
 Finally, we retrieve the admin password from argocd and apply our app-of-apps manifest!  From there 
-it should take another few minutes for containers to create and the state to be synced.  Very cool!
+it should take another few minutes for containers to be created and the state to be synced.  Very cool!
