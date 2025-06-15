@@ -2,6 +2,7 @@ import fs from "fs/promises"
 import path from "path"
 import { ContentListItem } from "@/components/ContentListItem"
 import { BackButton } from "@/components/BackButton"
+import { Metadata } from 'next'
 
 export default async function Page({ params }:
     { params: Promise<{ slug: string }>
@@ -34,7 +35,7 @@ export default async function Page({ params }:
   return (
     <div>
     <div className="lg:ml-[20%] lg:w-[55%] mb-12 font-main">
-      <BackButton href="/" text="Back to homepage" /> {/* Use the BackButton component */}
+      <BackButton href="/" text="Back to homepage" />
       <div className="prose prose-lg dark:prose-invert max-w-none">
         <FolderHead />
       </div>
@@ -69,3 +70,24 @@ export async function generateStaticParams() {
 }
 
 export const dynamicParams = false
+
+export async function generateMetadata({
+  params,
+}: {
+  params: { slug: string[] }
+}): Promise<Metadata> {
+  const { slug } = params
+  const { frontmatter } = await import(`@/content/${slug}/_index.mdx`)
+
+  return {
+    title: frontmatter.title,
+    description: `${new Date(frontmatter.date).toLocaleDateString()} - ${frontmatter.title} - gradyarnold.com`,
+    openGraph: {
+      title: frontmatter.title,
+      description: `${new Date(frontmatter.date).toLocaleDateString()} - ${frontmatter.title} - gradyarnold.com`,
+      url: `https://gradyarnold.com/blog/folder/${slug}`,
+      type: 'article',
+      publishedTime: frontmatter.date
+    },
+  }
+}

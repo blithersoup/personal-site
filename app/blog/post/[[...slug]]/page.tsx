@@ -1,6 +1,7 @@
 import { promises as fs } from 'fs'
 import Link from 'next/link'
 import { ArrowLeftIcon } from '@radix-ui/react-icons'
+import { Metadata } from 'next'
 
 export default async function Page({
     params,
@@ -57,3 +58,26 @@ export async function generateStaticParams() {
 }
 
 export const dynamicParams = false
+
+export async function generateMetadata({
+  params,
+}: {
+  params: { slug: string[] }
+}): Promise<Metadata> {
+  const { slug } = params
+  const { frontmatter } = await import(`@/content/${slug.join('/')}.mdx`)
+
+  console.log( `Blog post from ${new Date(frontmatter.date).toLocaleDateString()}`)
+  
+  return {
+    title: frontmatter.title,
+    description: `${new Date(frontmatter.date).toLocaleDateString()} - ${frontmatter.title} - gradyarnold.com`,
+    openGraph: {
+      title: frontmatter.title,
+      description: `${new Date(frontmatter.date).toLocaleDateString()} - ${frontmatter.title} - gradyarnold.com`,
+      url: `https://gradyarnold.com/blog/post/${slug.join('/')}`,
+      type: 'article',
+      publishedTime: frontmatter.date
+    },
+  }
+}
