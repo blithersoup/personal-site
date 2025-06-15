@@ -62,13 +62,11 @@ export const dynamicParams = false
 export async function generateMetadata({
   params,
 }: {
-  params: { slug: string[] }
+  params: Promise<{ slug: string[] }>
 }): Promise<Metadata> {
-  const { slug } = params
+  const { slug } = await params
   const { frontmatter } = await import(`@/content/${slug.join('/')}.mdx`)
 
-  console.log( `Blog post from ${new Date(frontmatter.date).toLocaleDateString()}`)
-  
   return {
     title: frontmatter.title,
     description: `${new Date(frontmatter.date).toLocaleDateString()} - ${frontmatter.title} - gradyarnold.com`,

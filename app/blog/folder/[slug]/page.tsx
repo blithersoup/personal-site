@@ -74,9 +74,9 @@ export const dynamicParams = false
 export async function generateMetadata({
   params,
 }: {
-  params: { slug: string[] }
+  params: Promise<{ slug: string[] }>
 }): Promise<Metadata> {
-  const { slug } = params
+  const { slug } = await params
   const { frontmatter } = await import(`@/content/${slug}/_index.mdx`)
 
   return {
