@@ -39,6 +39,7 @@ export async function generateStaticParams() {
   
   const baseFiles: string[] = entries
     .filter((dirent) => !dirent.isDirectory())
+    .filter((dirent) => dirent.name !== '_index.mdx')
     .map((dirent) => dirent.name.replace(/\.mdx$/, ''));
 
   const folders = entries.filter((dirent) => dirent.isDirectory());
